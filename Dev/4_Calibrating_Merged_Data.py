@@ -10,34 +10,49 @@ hud_available_apis = {
     'all_states': '/listStates',
     'all_counties': '/listCounties/',
     'all_metro_areas': '/listMetroAreas',
-    'FMRs': '/data/',
-    'FMR_by_state': '/statedata/{statecode}'
+    'FMRs': '/data/'
 }
 
-# Create a State-County-FMR DataFrame.
+# Create a State DF
 state_df = pd.DataFrame(requests.get(hud_base_url+hud_available_apis['all_states'],headers=hud_headers).\
                         json())
 
+# Create a Metro Area DF.
+# Create a list of unique metro areas in order to iterate over FMRs entityID in order to get zipcode data.
 metro_areas_df = pd.DataFrame(requests.get(hud_base_url+hud_available_apis['all_metro_areas'],headers=hud_headers).\
                         json())
 unique_metro_areas_list = list(metro_areas_df['cbsa_code'].unique())
 unique_metro_areas_list_sample = random.sample(unique_metro_areas_list,10)
 
-metro_areas_list = {}
+# Retrieve FMRs using the unique metro areas list. Create a for loop that filters 'data' key
+FMR_raw = []
+
 for metro_areas in unique_metro_areas_list_sample:
     resp = requests.get(hud_base_url+hud_available_apis['FMRs']+metro_areas,headers=hud_headers)
-    metro_areas_list = metro_areas_list | resp.json()
 
-'''
-Dev notes - ES 11/1/2023 11:19pm
-I'm stuck at the for loop function over metro_areas_list dictionary. 
-The dictionary gotten from the API contains several nested dictionaries.
-I must find a way to depurate this dictionary and consolidated them all in order to create a simple dataframe, 
-and then begin with merging process.
+    if resp.status_code == 200:
+        fmr_data_when_200 = resp.json()
 
- Plan:
- - To merge State-County-FMR. We'll loop unique metro area cbsa codes over FMRs mandatory parameter in order to get
- zip code level data.
- - Once we get a DataFrame, we'll merge with other DataFrames.
- - Median Home Values data is still pending.
-'''
+        for item in fmr_data_when_200:
+            if 'data' in fmr_data_when_200:
+                FMR_raw.append(fmr_data_when_200['data'])
+
+# Un-nest FMR_raw and create a DataFrame of FMR_df
+FMR_cleaned = []
+
+for item in FMR_raw:
+    parent_dict = item.copy()  # Create a copy of the parent dictionary
+    basicdata = parent_dict.pop('basicdata')  # Remove 'basicdata' and get its value
+
+    # Check if 'basicdata' is a list or a dictionary
+    if isinstance(basicdata, list):
+        # Handle the case where 'basicdata' is a list of dictionaries
+        for sub_dict in basicdata:
+            parent_dict.update(sub_dict)
+    elif isinstance(basicdata, dict):
+        # Handle the case where 'basicdata' is a single dictionary
+        parent_dict.update(basicdata)
+
+    FMR_cleaned.append(parent_dict)
+
+FMR_df = pd.DataFrame(FMR_cleaned)
