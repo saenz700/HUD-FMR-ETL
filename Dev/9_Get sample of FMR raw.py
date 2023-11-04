@@ -1,6 +1,7 @@
 import pandas as pd
 import requests
 import time
+import random
 
 # Define get_hud_data as a function that retrieves successfully API from https://www.huduser.gov/portal/dataset/fmr-api.html
 def get_hud_data(api_endpoint, headers):
@@ -24,12 +25,11 @@ hud_available_apis = {
     'FMRs': '/data/'
 }
 
-# Create a State DF
-state_df = pd.DataFrame(get_hud_data(hud_available_apis['all_states'], hud_headers))
-
 # Create a Metro Area DF
 metro_areas_df = pd.DataFrame(get_hud_data(hud_available_apis['all_metro_areas'], hud_headers))
 unique_metro_areas_list = list(metro_areas_df['cbsa_code'].unique())
+unique_metro_areas_list_sample = random.sample(unique_metro_areas_list,60)
+unique_metro_areas_list = unique_metro_areas_list_sample
 
 # Retrieve FMRs using the unique metro areas list
 FMR_raw = []
@@ -41,29 +41,4 @@ for metro_areas in unique_metro_areas_list:
         if 'data' in fmr_data:
             FMR_raw.append(fmr_data['data'])
 
-    time.sleep(2)
-
-# Un-nest FMR_raw and create a DataFrame of FMR_df
-FMR_cleaned = []
-
-for item in FMR_raw:
-    parent_dict = item.copy()
-    basicdata = parent_dict.pop('basicdata')
-
-    if isinstance(basicdata, list):
-        # Handle the case where 'basicdata' is a list of dictionaries
-        for sub_dict in basicdata:
-            new_row = parent_dict.copy()  # Create a new row
-            new_row.update(sub_dict)  # Copy 'basicdata' fields to the new row
-            FMR_cleaned.append(new_row)
-    elif isinstance(basicdata, dict):
-        # Handle the case where 'basicdata' is a single dictionary
-        parent_dict.update(basicdata)
-        FMR_cleaned.append(parent_dict)
-
-FMR_df = pd.DataFrame(FMR_cleaned)
-
-# Save dataframes to CSV
-state_df.to_csv(r'C:\Users\Admin\PycharmProjects\FMR_To_Median-Home-Values\Dev\state_data.csv', index=False)
-metro_areas_df.to_csv(r'C:\Users\Admin\PycharmProjects\FMR_To_Median-Home-Values\Dev\metro_areas_data.csv', index=False)
-FMR_df.to_csv(r'C:\Users\Admin\PycharmProjects\FMR_To_Median-Home-Values\Dev\FMR_data.csv', index=False)
+print(FMR_raw)
