@@ -144,12 +144,6 @@ zip_code_df = zip_code_df.loc[zip_code_df.groupby('zip')['tot_ratio'].idxmax()] 
 # Open county file and create a DataFrame
 county_df = pd.read_csv(census_counties_file_path)
 
-# Save dataframes to CSV
-state_df.to_csv(r'C:\Users\Admin\PycharmProjects\FMR_To_Median-Home-Values\Dev\state_df.csv', index=False)
-zip_code_df.to_csv(r'C:\Users\Admin\PycharmProjects\FMR_To_Median-Home-Values\Dev\zip_code_df.csv', index=False)
-fmr_cbsa_df.to_csv(r'C:\Users\Admin\PycharmProjects\FMR_To_Median-Home-Values\Dev\fmr_cbsa_df.csv', index=False)
-fmr_state_df.to_csv(r'C:\Users\Admin\PycharmProjects\FMR_To_Median-Home-Values\Dev\fmr_state_df.csv', index=False)
-
 # Record the end time
 end_time = time.time()
 
