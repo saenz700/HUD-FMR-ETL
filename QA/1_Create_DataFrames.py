@@ -23,7 +23,7 @@ def get_hud_data(api_endpoint, headers):
 
 # Base URL and headers
 hud_base_url = "https://www.huduser.gov/hudapi/public"
-hud_token = "YOUR API HERE"
+hud_token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImp0aSI6ImNmNWFkMTk4OTQyZDg1MTliNzJkM2I0NGFiZDQ2NDlmODUyZmIzOGQwZjRjYjg0YzY2YjJlMGQxMmQ1ODdjODQ4YmZjNmNlZjlhZWRmMzQxIn0.eyJhdWQiOiI2IiwianRpIjoiY2Y1YWQxOTg5NDJkODUxOWI3MmQzYjQ0YWJkNDY0OWY4NTJmYjM4ZDBmNGNiODRjNjZiMmUwZDEyZDU4N2M4NDhiZmM2Y2VmOWFlZGYzNDEiLCJpYXQiOjE3MDA0MjQwNDUsIm5iZiI6MTcwMDQyNDA0NSwiZXhwIjoyMDE2MDQzMjQ1LCJzdWIiOiI2MDMxNCIsInNjb3BlcyI6W119.V-KLoQfwncST1WFpi0i_y9igKMgKT6FpUUukL3d5mzoYBGqnqi2Q-UqkUtV0BGdKFJQ7UwWZ0yb8Sx30jPqdZQ'
 hud_headers = {"Authorization": "Bearer " + hud_token}
 
 # Define available APIs and years of scope.
@@ -47,6 +47,7 @@ census_counties_file_path = '/Users/Admin/PycharmProjects/FMR_To_Median-Home-Val
 """Part 2- DataFrames"""
 # Create a State DF
 state_df = pd.DataFrame(get_hud_data(hud_available_apis['all_states'], hud_headers))
+state_df = state_df[['state_code', 'state_name']]
 
 # Create fmrs_state_df
 state_list = list(state_df['state_code'].unique()) # Create a state list to iterate over for API requests.
@@ -74,7 +75,13 @@ for item in fmr_state_raw:
         parent_dict = item.copy() # Copy the parent_dict to avoid modifying the original dictionary
         parent_dict.pop('counties', None) # Remove 'counties' key from the parent_dict
         parent_dict.pop('metroareas', None) # Remove 'metroareas' key
-        parent_dict['sub_level'] = 'Counties' # Add 'sub_level' key with the value 'Counties' to the parent_dict
+
+        # Check if 'town_names' exists in the county
+        if 'town_name' in county and county['town_name']:
+            parent_dict['sub_level'] = 'Towns' # Add 'sub_level' key with the value 'Towns' to the parent_dict
+        else:
+            parent_dict['sub_level'] = 'Counties' # Add 'sub_level' key with the value 'Counties' to the parent_dict
+
         county.update(parent_dict) # Update the county with the values from the parent_dict
         fmr_state_clean.append(county)
 
@@ -95,6 +102,8 @@ for cbsa_code in unique_metro_areas_list:
             if 'data' in fmr_data_cbsa:
                 parent_dict = fmr_data_cbsa['data']
                 parent_dict['cbsa_code'] = cbsa_code
+                parent_dict['level'] = 'Zip'
+                parent_dict['sub_level'] = 'Zip'
                 basicdata = parent_dict.pop('basicdata')
 
                 for entry in basicdata:
@@ -104,7 +113,7 @@ for cbsa_code in unique_metro_areas_list:
                         new_row.update(entry)
                         fmr_raw_cbsa.append(new_row)
 
-    time.sleep(2)
+        time.sleep(2)
 
 fmr_cbsa_df = pd.DataFrame(fmr_raw_cbsa)
 
@@ -143,6 +152,12 @@ zip_code_df = zip_code_df.loc[zip_code_df.groupby('zip')['tot_ratio'].idxmax()] 
 
 # Open county file and create a DataFrame
 county_df = pd.read_csv(census_counties_file_path)
+
+# Save dataframes to CSV
+state_df.to_csv(r'C:\Users\Admin\PycharmProjects\FMR_To_Median-Home-Values\Dev\state_df.csv', index=False)
+zip_code_df.to_csv(r'C:\Users\Admin\PycharmProjects\FMR_To_Median-Home-Values\Dev\zip_code_df.csv', index=False)
+fmr_cbsa_df.to_csv(r'C:\Users\Admin\PycharmProjects\FMR_To_Median-Home-Values\Dev\fmr_cbsa_df.csv', index=False)
+fmr_state_df.to_csv(r'C:\Users\Admin\PycharmProjects\FMR_To_Median-Home-Values\Dev\fmr_state_df.csv', index=False)
 
 # Record the end time
 end_time = time.time()
