@@ -23,7 +23,7 @@ def get_hud_data(api_endpoint, headers):
 
 # Base URL and headers
 hud_base_url = "https://www.huduser.gov/hudapi/public"
-hud_token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImp0aSI6ImNmNWFkMTk4OTQyZDg1MTliNzJkM2I0NGFiZDQ2NDlmODUyZmIzOGQwZjRjYjg0YzY2YjJlMGQxMmQ1ODdjODQ4YmZjNmNlZjlhZWRmMzQxIn0.eyJhdWQiOiI2IiwianRpIjoiY2Y1YWQxOTg5NDJkODUxOWI3MmQzYjQ0YWJkNDY0OWY4NTJmYjM4ZDBmNGNiODRjNjZiMmUwZDEyZDU4N2M4NDhiZmM2Y2VmOWFlZGYzNDEiLCJpYXQiOjE3MDA0MjQwNDUsIm5iZiI6MTcwMDQyNDA0NSwiZXhwIjoyMDE2MDQzMjQ1LCJzdWIiOiI2MDMxNCIsInNjb3BlcyI6W119.V-KLoQfwncST1WFpi0i_y9igKMgKT6FpUUukL3d5mzoYBGqnqi2Q-UqkUtV0BGdKFJQ7UwWZ0yb8Sx30jPqdZQ'
+hud_token = 'YOUR API HERE'
 hud_headers = {"Authorization": "Bearer " + hud_token}
 
 # Define available APIs and years of scope.
