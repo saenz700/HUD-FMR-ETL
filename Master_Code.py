@@ -23,7 +23,7 @@ def get_hud_data(api_endpoint, headers):
 
 # Base URL and headers
 hud_base_url = "https://www.huduser.gov/hudapi/public"
-hud_token = 'YOUR API HERE'
+hud_token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImp0aSI6ImNmNWFkMTk4OTQyZDg1MTliNzJkM2I0NGFiZDQ2NDlmODUyZmIzOGQwZjRjYjg0YzY2YjJlMGQxMmQ1ODdjODQ4YmZjNmNlZjlhZWRmMzQxIn0.eyJhdWQiOiI2IiwianRpIjoiY2Y1YWQxOTg5NDJkODUxOWI3MmQzYjQ0YWJkNDY0OWY4NTJmYjM4ZDBmNGNiODRjNjZiMmUwZDEyZDU4N2M4NDhiZmM2Y2VmOWFlZGYzNDEiLCJpYXQiOjE3MDA0MjQwNDUsIm5iZiI6MTcwMDQyNDA0NSwiZXhwIjoyMDE2MDQzMjQ1LCJzdWIiOiI2MDMxNCIsInNjb3BlcyI6W119.V-KLoQfwncST1WFpi0i_y9igKMgKT6FpUUukL3d5mzoYBGqnqi2Q-UqkUtV0BGdKFJQ7UwWZ0yb8Sx30jPqdZQ'
 hud_headers = {"Authorization": "Bearer " + hud_token}
 
 # Define available APIs and years of scope.
@@ -37,7 +37,7 @@ hud_available_apis = {
 }
 
 years_of_scope = [2024, 2023, 2022, 2021, 2020] # Years to pull fmr data.
-years_for_zips = [2023, 2022, 2021, 2020, 2019] # Years to pull zip code data.
+years_for_zips = [2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015, 2014, 2013, 2012, 2011, 2010] # Years to pull zip code data.
 
 api_sleep_per_request = 1.1
 
@@ -57,7 +57,7 @@ for state in state_list:
     for year in years_of_scope:
         fmr_by_state = get_hud_data(hud_available_apis['state_FMR'] + state + '?year=' + str(year), hud_headers)['data']
         fmr_state_raw.append(fmr_by_state)
-        time.sleep(2)
+        time.sleep(api_sleep_per_request)
 
 fmr_state_clean = [] # Clean fmr_state_raw
 for item in fmr_state_raw:
@@ -111,14 +111,15 @@ for cbsa_code in unique_metro_areas_list:
                     if 'zip_code' in entry:
                         new_row = parent_dict.copy()
                         new_row.update(entry)
+                        new_row['zip_str'] = new_row['zip_code']
                         fmr_raw_cbsa.append(new_row)
 
-        time.sleep(2)
+        time.sleep(api_sleep_per_request)
 
 fmr_cbsa_df = pd.DataFrame(fmr_raw_cbsa)
 
 # Create a Zip Code DF
-zips_from_fmr_cbsa = list(fmr_cbsa_df['zip_code'].unique()) # Create zip code list to iterate over for API requests
+zips_from_fmr_cbsa = list(fmr_cbsa_df['zip_str'].unique()) # Create zip code list to iterate over for API requests
 
 zip_code_raw = []
 for zip in zips_from_fmr_cbsa:
@@ -127,7 +128,7 @@ for zip in zips_from_fmr_cbsa:
         for quarter in range(4, 0, -1):
             # type=2 gets zip & county_code as a geoid.
             response = get_hud_data(hud_available_apis['zip_codes']\
-                        + '?type=' + str(2) + '&query=' + str(zip) + '&year=' + str(year) + '&quarter=' + str(quarter)\
+                        + '?type=' + str(2) + '&query=' + zip + '&year=' + str(year) + '&quarter=' + str(quarter)\
                         , hud_headers)
 
             if 'data' in response:
@@ -137,6 +138,7 @@ for zip in zips_from_fmr_cbsa:
                 for entry in results:
                     new_row = parent_dict.copy()
                     new_row.update(entry)
+                    new_row['zip_str'] = zip
                     zip_code_raw.append(new_row)
 
                 zip_data_found = True  # Set the flag to True once data is found
@@ -148,18 +150,19 @@ for zip in zips_from_fmr_cbsa:
             break  # Exit the year loop once data is found
 
 zip_code_df = pd.DataFrame(zip_code_raw)
-zip_code_df = zip_code_df.loc[zip_code_df.groupby('zip')['tot_ratio'].idxmax()] # zip_code_df contains only the rows with the highest 'tot_ratio' for each zip
+zip_code_df = zip_code_df.loc[zip_code_df.groupby('zip_str')['tot_ratio'].idxmax()] # zip_code_df contains only the rows with the highest 'tot_ratio' for each zip
+zip_code_df['geoid'] = zip_code_df['geoid'].astype(str)
+zip_code_df['city'] = zip_code_df['city'].str.title()
 
 # Open county file and create a DataFrame
-county_df = pd.read_csv(census_counties_file_path)
+county_df = pd.read_csv(census_counties_file_path, dtype={'STATEFP':str, 'COUNTYFP':str})
 
 # Join counties with zips
 county_df['geoid'] = county_df['STATEFP'] + county_df['COUNTYFP']
 county_df['county_name'] = county_df['COUNTYNAME']
 county_df['state_code'] = county_df['STATE']
 zip_n_counties_df = pd.merge(how='left', left=zip_code_df, right=county_df, on='geoid')
-zip_n_counties_df['zip_code'] = zip_n_counties_df['zip']
-zip_n_counties_df = zip_n_counties_df[['zip_code', 'city', 'county_name', 'state_code']]
+zip_n_counties_df = zip_n_counties_df[['zip_str', 'city', 'county_name', 'state_code']]
 
 # Join zip_n_counties_df with state_df
 zip_n_counties_df = pd.merge(how='inner', left=zip_n_counties_df, right=state_df, on='state_code')
@@ -212,10 +215,17 @@ fmr_cbsa_df.drop(columns=\
                 inplace=True)
 
 # Merge fmr_cbsa_df with zip_n_counties_df
-fmr_cbsa_df = pd.merge(how='left', left=fmr_cbsa_df, right=zip_n_counties_df, on='zip_code')
+fmr_cbsa_df = pd.merge(how='left', left=fmr_cbsa_df, right=zip_n_counties_df, on='zip_str')
 
 # Concatenate fmr_cbsa_df and fmr_state_df as fmr_master_df
-fmr_master_df  = pd.concat([fmr_state_df, fmr_cbsa_df], ignore_index=True)
+fmr_master_df = pd.concat([fmr_state_df, fmr_cbsa_df], ignore_index=True)
+fmr_master_df = [
+                ['metro_name', 'Efficiency', 'One-Bedroom', 'Two-Bedroom', 'Three-Bedroom',\
+                  'Four-Bedroom', 'smallarea_status', 'year', 'level', 'sub_level', 'town_name',\
+                  'county_name', 'state_name', 'state_code', 'zip_code', 'city']
+                ]
+
+fmr_master_df.to_csv(r'C:\Users\Admin\PycharmProjects\FMR_To_Median-Home-Values\Dev\fmr_master_df.csv', index=False)
 
 # Record the end time
 end_time = time.time()
