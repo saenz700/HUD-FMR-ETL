@@ -5,13 +5,6 @@ import time
 # Record the start time
 start_time = time.time()
 
-"""
-Overall structure of the code:
-Part 1- Foundation: create get_hud_data as a function to trigger repetitive API requests. Define scope and variables.
-Part 2- DataFrames: produce all needed DataFrames before merging.
-"""
-
-"""Part 1 - Foundation"""
 # Define get_hud_data as a function that retrieves successfully API from https://www.huduser.gov/portal/dataset/fmr-api.html
 def get_hud_data(api_endpoint, headers):
     response = requests.get(hud_base_url + api_endpoint, headers=headers)
@@ -44,7 +37,6 @@ api_sleep_per_request = 1.1
 # Census.gov county and county equivalents manual file.
 census_counties_file_path = '/Users/Admin/PycharmProjects/FMR_To_Median-Home-Values/Dev/counties_from_census_dot_gov.csv'
 
-"""Part 2- DataFrames"""
 # Create a State DF
 state_df = pd.DataFrame(get_hud_data(hud_available_apis['all_states'], hud_headers))
 state_df = state_df[['state_code', 'state_name']]
